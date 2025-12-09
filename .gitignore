@@ -1,5 +1,29 @@
-# Visual Studio 2015 user specific files
+# IDE specific files
 .vs/
+.idea/
+
+# 폴더
+Plugins/LyraExampleContent/*
+Plugins/GameFeatures/ShooterMaps/*
+Plugins/GameFeatures/TopDownArena/*
+Plugins/GameFeatures/ShooterTests/*
+Plugins/GameFeatures/ShooterExplorer/*
+Plugins/GameFeatures/ShooterCore/*
+Content/*
+
+#제외
+
+*.uasset
+
+
+# NoWork 반드시 포함
+!Plugins/GameFeatures/NoWorkNoLife/*
+
+# Blueprint-Assist Cache files
+Plugins/**/BlueprintAssist/NodeSizeCache/*
+
+# Debug files
+*.pdb
 
 # Compiled Object files
 *.slo
@@ -40,17 +64,19 @@
 *.sdf
 *.VC.db
 *.VC.opendb
+*.sln.DotSettings.user
 
 # Precompiled Assets
 SourceArt/**/*.png
 SourceArt/**/*.tga
 
 # Binary Files
-Binaries/*
-Plugins/**/Binaries/*
+Binaries/**
+Plugins/**/Binaries/**
 
 # Builds
 Build/*
+ArchivedBuilds/*
 
 # Whitelist PakBlacklist-<BuildConfiguration>.txt files
 !Build/*/
