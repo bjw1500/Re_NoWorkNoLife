@@ -37,6 +37,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	void SetChestState(EChestState NewChestState);
 
+	EChestState GetChestState() {return ChestState;}
+	
 private:
 	UFUNCTION()
 	void OnRep_ChestState();

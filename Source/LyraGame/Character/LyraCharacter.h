@@ -224,4 +224,16 @@ private:
 
 	UFUNCTION()
 	void OnRep_MyTeamID(FGenericTeamId OldTeamID);
+
+public:
+	float BaseUnscaledCapsuleHalfHeight = 0.f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float BaseFallDamage = 3.f;
+	
+	UPROPERTY(EditDefaultsOnly)
+	float MaxFallDamage = 10.f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float FallDamageVelocityZThreshold = 800.f;
 };

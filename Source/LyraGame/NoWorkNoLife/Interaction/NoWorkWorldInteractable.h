@@ -16,13 +16,13 @@ public:
 
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-// bCanUsed 설정 시 1회성 사용 제한(bIsUsed 체크)
-virtual bool CanInteraction(const FNoWorkInteractionQuery& InteractionQuery) const override;
-	
+	// bCanUsed 설정 시 1회성 사용 제한(bIsUsed 체크)
+	virtual bool CanInteraction(const FNoWorkInteractionQuery& InteractionQuery) const override;
+		
 public:
-// 진행 시작/종료/성공 이벤트(블루프린트 연동용)
-UFUNCTION(BlueprintCallable)
-virtual void OnInteractActiveStarted(AActor* Interactor);
+	// 진행 시작/종료/성공 이벤트(블루프린트 연동용)
+	UFUNCTION(BlueprintCallable)
+	virtual void OnInteractActiveStarted(AActor* Interactor);
 
 	UFUNCTION(BlueprintImplementableEvent, DisplayName="OnInteractActiveStarted")
 	void K2_OnInteractActiveStarted(AActor* Interactor);
