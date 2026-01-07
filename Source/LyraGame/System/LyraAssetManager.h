@@ -25,6 +25,9 @@ struct FLyraBundles
  *	It is expected that most games will want to override AssetManager as it provides a good place for game-specific loading logic.
  *	This class is used by setting 'AssetManagerClassName' in DefaultEngine.ini.
  */
+
+class UNoWorkItemData;
+
 UCLASS(Config = Game)
 class ULyraAssetManager : public UAssetManager
 {
@@ -50,6 +53,7 @@ public:
 
 	const ULyraGameData& GetGameData();
 	const ULyraPawnData* GetDefaultPawnData() const;
+	const UNoWorkItemData& GetItemData();
 
 protected:
 	template <typename GameDataClass>
@@ -94,6 +98,10 @@ protected:
 	UPROPERTY(Config)
 	TSoftObjectPtr<ULyraPawnData> DefaultPawnData;
 
+	UPROPERTY(Config)
+	TSoftObjectPtr<UNoWorkItemData> ItemDataPath;
+
+	
 private:
 	// Flushes the StartupJobs array. Processes all startup work.
 	void DoAllStartupJobs();
