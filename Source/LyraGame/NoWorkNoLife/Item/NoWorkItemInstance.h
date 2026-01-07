@@ -24,4 +24,21 @@ public:
 	virtual bool IsSupportedForNetworking() const override;
 	virtual float GetDistanceAttenuation(float Distance, const FGameplayTagContainer* SourceTags = nullptr, const FGameplayTagContainer* TargetTags = nullptr) const override;
 	virtual float GetPhysicalMaterialAttenuation(const UPhysicalMaterial* PhysicalMaterial, const FGameplayTagContainer* SourceTags = nullptr, const FGameplayTagContainer* TargetTags = nullptr) const override;
+
+public:
+
+	void Init(int32 InItemTemplateID, EItemRarity InItemRarity);
+
+public:
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	int32 GetItemTemplateID() const { return ItemTemplateID; }
+	
+
+private:
+	UPROPERTY(Replicated)
+	int32 ItemTemplateID = INDEX_NONE;
+
+	UPROPERTY(Replicated)
+	EItemRarity ItemRarity = EItemRarity::Poor;
 };

@@ -3,6 +3,11 @@
 
 #include "NoWorkNoLife/Item/NoWorkItemInstance.h"
 
+#include "NoWorkItemTemplate.h"
+
+// Ensure generated code is compiled in the same TU
+#include UE_INLINE_GENERATED_CPP_BY_NAME(NoWorkItemInstance)
+
 UNoWorkItemInstance::UNoWorkItemInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -26,4 +31,22 @@ float UNoWorkItemInstance::GetPhysicalMaterialAttenuation(const UPhysicalMateria
 	const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags) const
 {
 	return 0;
+}
+
+void UNoWorkItemInstance::Init(int32 InItemTemplateID, EItemRarity InItemRarity)
+{
+	if (InItemTemplateID <= INDEX_NONE || InItemRarity == EItemRarity::Count)
+		return;
+
+	ItemTemplateID = InItemTemplateID;
+	ItemRarity = InItemRarity;
+
+	// const UNoWorkItemTemplate& ItemTemplate = UNoWorkItemData::Get().FindItemTemplateByID(ItemTemplateID);
+	// for (const UD1ItemFragment* Fragment : ItemTemplate.Fragments)
+	// {
+	// 	if (Fragment)
+	// 	{
+	// 		Fragment->OnInstanceCreated(this);
+	// 	}
+	// }
 }

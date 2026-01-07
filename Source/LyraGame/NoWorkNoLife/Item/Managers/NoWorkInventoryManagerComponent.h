@@ -1,0 +1,126 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
+#include "NoWorkNoLife/NoWorkDefine.h"
+#include "Net/Serialization/FastArraySerializer.h"
+#include "NoWorkInventoryManagerComponent.generated.h"
+
+
+class UNoWorkItemInstance;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnInventoryEntryChanged, const FIntPoint&/*ItemSlotPos*/, UNoWorkItemInstance*, int32/*ItemCount*/);
+
+
+USTRUCT(BlueprintType)
+struct FNoWorkInventoryEntry : public FFastArraySerializerItem
+{
+	GENERATED_BODY()
+
+private:
+	UNoWorkItemInstance* Init(int32 InItemTemplateID, int32 InItemCount, EItemRarity InItemRarity);
+	void Init(UNoWorkItemInstance* InItemInstance, int32 InItemCount);
+	UNoWorkItemInstance* Reset();
+	
+public:
+	UNoWorkItemInstance* GetItemInstance() const { return ItemInstance; }
+	int32 GetItemCount() const { return ItemCount; }
+	
+private:
+	friend struct FNoWorkInventoryList;
+	friend class UNoWorkInventoryManagerComponent;
+	
+	UPROPERTY()
+	TObjectPtr<UNoWorkItemInstance> ItemInstance;
+
+	UPROPERTY()
+	int32 ItemCount = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FNoWorkInventoryList : public FFastArraySerializer
+{
+	GENERATED_BODY()
+
+public:
+	FNoWorkInventoryList() : InventoryManager(nullptr) { }
+	FNoWorkInventoryList(UNoWorkInventoryManagerComponent* InOwnerComponent) : InventoryManager(InOwnerComponent) { }
+
+public:
+	// FastArray 복제 훅 및 변경 브로드캐스트
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParams);
+	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
+	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
+
+private:
+	void BroadcastChangedMessage(const FIntPoint& ItemSlotPos, UNoWorkItemInstance* ItemInstance, int32 ItemCount);
+	
+public:
+	const TArray<FNoWorkInventoryEntry>& GetAllEntries() const { return Entries; }
+	
+private:
+	friend class UNoWorkInventoryManagerComponent;
+	
+	UPROPERTY()
+	TArray<FNoWorkInventoryEntry> Entries;
+	
+	UPROPERTY(NotReplicated)
+	TObjectPtr<UNoWorkInventoryManagerComponent> InventoryManager;
+};
+
+template<>
+struct TStructOpsTypeTraits<FNoWorkInventoryList> : public TStructOpsTypeTraitsBase2<FNoWorkInventoryList>
+{
+	enum
+	{
+		WithNetDeltaSerializer = true
+	};
+};
+
+
+UCLASS( BlueprintType, Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+class LYRAGAME_API UNoWorkInventoryManagerComponent : public UActorComponent
+{
+	GENERATED_BODY()
+
+public:	
+	// Sets default values for this component's properties
+	UNoWorkInventoryManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+protected:
+	virtual void InitializeComponent() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	virtual void ReadyForReplication() override;
+	
+public:	
+
+	// 슬롯 점유 확인
+	bool IsEmpty(const TArray<bool>& InSlotChecks, const FIntPoint& ItemSlotPos, const FIntPoint& ItemSlotCount) const;
+	bool IsEmpty(const FIntPoint& ItemSlotPos, const FIntPoint& ItemSlotCount) const;
+	bool IsAllEmpty();
+	
+	UNoWorkItemInstance* GetItemInstance(const FIntPoint& ItemSlotPos) const;
+	int32 GetItemCount(const FIntPoint& ItemSlotPos) const;
+	
+	const TArray<FNoWorkInventoryEntry>& GetAllEntries() const;
+	int32 GetTotalCountByID(int32 ItemTemplateID) const;
+	FIntPoint GetInventorySlotCount() const { return InventorySlotCount; }
+	TArray<bool>& GetSlotChecks() { return SlotChecks; }
+
+public:
+
+	FOnInventoryEntryChanged OnInventoryEntryChanged;
+	
+private:
+	UPROPERTY(Replicated)
+	FNoWorkInventoryList InventoryList;
+	
+	UPROPERTY(Replicated)
+	TArray<bool> SlotChecks;
+	
+	FIntPoint InventorySlotCount = FIntPoint(10, 5);
+	
+};
