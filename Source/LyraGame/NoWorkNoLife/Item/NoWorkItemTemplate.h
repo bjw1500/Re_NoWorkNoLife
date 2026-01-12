@@ -8,7 +8,16 @@
 
 
 
+class UNoWorkItemInstance;
 
+UCLASS(DefaultToInstanced, EditInlineNew, Abstract)
+class UNoWorkItemFragment : public UObject
+{
+	GENERATED_BODY()
+	
+public:
+	virtual void OnInstanceCreated(UNoWorkItemInstance* Instance) const { }
+};
 
 UCLASS(Blueprintable, Const, Abstract)
 class UNoWorkItemTemplate : public UObject
@@ -23,6 +32,16 @@ protected:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif // WITH_EDITOR
 
+public:
+	UFUNCTION(BlueprintCallable, BlueprintPure="false", meta=(DeterminesOutputType="FragmentClass"))
+	const UNoWorkItemFragment* FindFragmentByClass(TSubclassOf<UNoWorkItemFragment> FragmentClass) const;
+
+	template <typename FragmentClass>
+	const FragmentClass* FindFragmentByClass() const
+	{
+		return (FragmentClass*)FindFragmentByClass(FragmentClass::StaticClass());
+	}
+	
 public:
 	UPROPERTY(EditDefaultsOnly)
 	FIntPoint SlotCount = FIntPoint::ZeroValue;
@@ -41,4 +60,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UStaticMesh> PickupableMesh;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Instanced)
+	TArray<TObjectPtr<UNoWorkItemFragment>> Fragments;
 };

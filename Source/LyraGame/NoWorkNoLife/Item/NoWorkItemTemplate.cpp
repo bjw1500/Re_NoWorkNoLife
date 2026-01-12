@@ -27,3 +27,19 @@ EDataValidationResult UNoWorkItemTemplate::IsDataValid(FDataValidationContext& C
 	}
 	return Result;
 }
+
+const UNoWorkItemFragment* UNoWorkItemTemplate::FindFragmentByClass(
+	TSubclassOf<UNoWorkItemFragment> FragmentClass) const
+{
+	if (FragmentClass)
+	{
+		for (UNoWorkItemFragment* Fragment : Fragments)
+		{
+			if (Fragment && Fragment->IsA(FragmentClass))
+			{
+				return Fragment;
+			}
+		}
+	}
+	return nullptr;
+}

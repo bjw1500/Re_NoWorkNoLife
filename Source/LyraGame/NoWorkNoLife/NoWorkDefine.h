@@ -19,3 +19,39 @@ enum class EItemRarity : uint8
 
 	Count	UMETA(Hidden)
 };
+
+UENUM(BlueprintType)
+enum class EEquipmentType : uint8
+{
+	Armor,
+	Weapon,
+	Utility,
+	
+	Count	UMETA(Hidden)
+};
+
+UENUM(BlueprintType)
+enum class EWeaponType : uint8
+{
+	Unarmed,
+	OneHandSword,
+	TwoHandSword,
+	GreatSword,
+	Shield,
+	Staff,
+	Bow,
+
+	Count	UMETA(Hidden)
+};
+
+UENUM(BlueprintType)
+enum class EArmorType : uint8
+{
+	Helmet,
+	Chest,
+	Legs,
+	Hands,
+	Foot,
+
+	Count	UMETA(Hidden)
+};
