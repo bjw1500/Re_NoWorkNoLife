@@ -6,6 +6,8 @@
 #include "System/LyraAssetManager.h"
 
 #include "NoWorkNoLife/Item/NoWorkItemTemplate.h"
+#include "NoWorkNoLife/Item/Fragments/NoWorkItemFragment_Equipable_Armor.h"
+#include "NoWorkNoLife/Item/Fragments/NoWorkItemFragment_Equipable_Weapon.h"
 #include "UObject/ObjectSaveContext.h"
 
 #if WITH_EDITOR
@@ -27,10 +29,26 @@ void UNoWorkItemData::PreSave(FObjectPreSaveContext SaveContext)
 });
 
 	ItemTemplateClassToID.Empty();
+	WeaponItemTemplateClasses.Empty();
+	ArmorItemTemplateClasses.Empty();
 
 	for (const auto& Pair : ItemTemplateIDToClass)
 	{
 		ItemTemplateClassToID.Emplace(Pair.Value, Pair.Key);
+
+		const UNoWorkItemTemplate* ItemTemplate = Pair.Value.GetDefaultObject();
+		const UNoWorkItemFragment_Equipable_Weapon* WeaponFragment = ItemTemplate->FindFragmentByClass<UNoWorkItemFragment_Equipable_Weapon>();
+		const UNoWorkItemFragment_Equipable_Armor* ArmorFragment = ItemTemplate->FindFragmentByClass<UNoWorkItemFragment_Equipable_Armor>();
+
+		if (WeaponFragment)
+		{
+			WeaponItemTemplateClasses.Add(Pair.Value);
+		}
+
+		if (ArmorFragment)
+		{
+			ArmorItemTemplateClasses.Add(Pair.Value);
+		}
 	}
 }
 

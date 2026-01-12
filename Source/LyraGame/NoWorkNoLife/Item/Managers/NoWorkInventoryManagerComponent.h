@@ -94,6 +94,18 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void ReadyForReplication() override;
+
+public:
+	// 템플릿/희귀도/수량을 기준으로 추가/제거 가능 분배 계획 계산
+	int32 CanAddItem(int32 ItemTemplateID, EItemRarity ItemRarity, int32 ItemCount, TArray<FIntPoint>& OutToItemSlotPoses, TArray<int32>& OutToItemCounts) const;
+
+public:
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	// 희귀도 고정 방식으로 아이템 추가 시도(성공 수량 반환)
+	int32 TryAddItemByRarity(TSubclassOf<UNoWorkItemTemplate> ItemTemplateClass, EItemRarity ItemRarity, int32 ItemCount);
+private:
+	void MarkSlotChecks(TArray<bool>& InSlotChecks, bool bIsUsing, const FIntPoint& ItemSlotPos, const FIntPoint& ItemSlotCount) const;
+	void MarkSlotChecks(bool bIsUsing, const FIntPoint& ItemSlotPos, const FIntPoint& ItemSlotCount);
 	
 public:	
 

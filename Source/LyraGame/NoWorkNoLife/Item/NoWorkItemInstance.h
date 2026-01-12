@@ -34,7 +34,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	int32 GetItemTemplateID() const { return ItemTemplateID; }
 	
-
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	EItemRarity GetItemRarity() const { return ItemRarity; }
+	
 private:
 	UPROPERTY(Replicated)
 	int32 ItemTemplateID = INDEX_NONE;

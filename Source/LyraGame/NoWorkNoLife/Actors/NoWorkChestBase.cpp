@@ -1,6 +1,10 @@
 ﻿#include "NoWorkNoLife/Actors/NoWorkChestBase.h"
 #include "Components/ArrowComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "NoWorkNoLife/Data/NoWorkItemData.h"
+#include "NoWorkNoLife/Item/NoWorkItemTemplate.h"
+
+#include "NoWorkNoLife/Item//Managers/NoWorkInventoryManagerComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(NoWorkChestBase)
 
@@ -21,6 +25,8 @@ ANoWorkChestBase::ANoWorkChestBase(const FObjectInitializer& ObjectInitializer)
 	MeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 	MeshComponent->SetCanEverAffectNavigation(true);
 	MeshComponent->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickMontagesAndRefreshBonesWhenPlayingMontages;
+
+	InventoryManager = CreateDefaultSubobject<UNoWorkInventoryManagerComponent>(TEXT("Inventory Manager"));
 }
 
 // 서버에서 시작 시 전리품 규칙에 따라 인벤토리를 초기화
@@ -32,6 +38,41 @@ void ANoWorkChestBase::BeginPlay()
 
 	if (HasAuthority() == false)
 		return;
+
+	const TArray<TSubclassOf<UNoWorkItemTemplate>>& WeaponItemTemplateClasses = UNoWorkItemData::Get().GetWeaponItemTemplateClasses();
+	const TArray<TSubclassOf<UNoWorkItemTemplate>>& ArmorItemTemplateClasses = UNoWorkItemData::Get().GetArmorItemTemplateClasses();
+
+	bool bItemAdded = false;
+
+	for (const FItemAddRule& ItemAddRule : ItemAddRules)
+	{
+		if (ItemAddRule.ItemAddType == EItemAddType::None)
+			continue;
+	
+		if (FMath::RandRange(0.f, 100.f) > ItemAddRule.ItemAddTypeRate)
+			continue;
+		
+		const TArray<TSubclassOf<UNoWorkItemTemplate>>* SelectedItemTemplateClasses = nullptr;
+		
+		switch (ItemAddRule.ItemAddType)
+		{
+		case EItemAddType::Weapon:	SelectedItemTemplateClasses = &WeaponItemTemplateClasses;				break;
+		case EItemAddType::Armor:	SelectedItemTemplateClasses = &ArmorItemTemplateClasses;				break;
+		case EItemAddType::Custom:	SelectedItemTemplateClasses = &ItemAddRule.CustomItemTemplateClasses;	break;
+		}
+	
+		if (SelectedItemTemplateClasses)
+		{
+			int32 SelectedItemTemplateIndex = FMath::RandRange(0, SelectedItemTemplateClasses->Num() - 1);
+			TSubclassOf<UNoWorkItemTemplate> SelectedItemTemplateClass = (*SelectedItemTemplateClasses)[SelectedItemTemplateIndex];
+			
+			int32 SelectedItemRarityIndex = FMath::RandRange(0, ItemAddRule.ItemRarities.Num() - 1);
+			EItemRarity SelectedItemRarity = ItemAddRule.ItemRarities[SelectedItemRarityIndex];
+			
+			InventoryManager->TryAddItemByRarity(SelectedItemTemplateClass, SelectedItemRarity, 1);
+			bItemAdded = true;
+		}
+	}
 }
 
 void ANoWorkChestBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

@@ -8,6 +8,36 @@
 // - 열림/닫힘 상태 복제, 상태별 상호작용 정보/몽타주, 인벤토리 초기 채움 로직 보유
 
 class UArrowComponent;
+class UNoWorkInventoryManagerComponent;
+class UNoWorkItemTemplate;
+
+UENUM(BlueprintType)
+enum class EItemAddType : uint8
+{
+	None,
+	Weapon,
+	Armor,
+	Custom
+};
+
+USTRUCT(BlueprintType)
+struct FItemAddRule
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EItemAddType ItemAddType = EItemAddType::None;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="ItemAddType == EItemAddType::Custom", EditConditionHides))
+	TArray<TSubclassOf<UNoWorkItemTemplate>> CustomItemTemplateClasses;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float ItemAddTypeRate = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<EItemRarity> ItemRarities;
+};
 
 UENUM(BlueprintType)
 enum class EChestState : uint8
@@ -15,6 +45,7 @@ enum class EChestState : uint8
 	Open,
 	Close
 };
+
 
 UCLASS()
 class ANoWorkChestBase : public ANoWorkWorldInteractable
@@ -60,9 +91,17 @@ protected:
 	TObjectPtr<UAnimMontage> CloseMontage;
 
 protected:
+
+	UPROPERTY(EditDefaultsOnly, Category="Info")
+	TArray<FItemAddRule> ItemAddRules;
+
+protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UArrowComponent> ArrowComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<USkeletalMeshComponent> MeshComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UNoWorkInventoryManagerComponent> InventoryManager;
 };

@@ -32,6 +32,9 @@ public:
 	
 	void GetAllItemTemplateClasses(TArray<TSubclassOf<UNoWorkItemTemplate>>& OutItemTemplateClasses) const;
 
+	const TArray<TSubclassOf<UNoWorkItemTemplate>>& GetWeaponItemTemplateClasses() const { return WeaponItemTemplateClasses; }
+	const TArray<TSubclassOf<UNoWorkItemTemplate>>& GetArmorItemTemplateClasses() const { return ArmorItemTemplateClasses; }
+	
 	
 private:
 	UPROPERTY(EditDefaultsOnly)
@@ -39,5 +42,12 @@ private:
 
 	UPROPERTY()
 	TMap<TSubclassOf<UNoWorkItemTemplate>, int32> ItemTemplateClassToID;
+	
+private:
+	UPROPERTY()
+	TArray<TSubclassOf<UNoWorkItemTemplate>> WeaponItemTemplateClasses;
+
+	UPROPERTY()
+	TArray<TSubclassOf<UNoWorkItemTemplate>> ArmorItemTemplateClasses;
 	
 };

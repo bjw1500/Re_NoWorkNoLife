@@ -7,9 +7,8 @@
 #include "NoWorkNoLife/Item/NoWorkItemTemplate.h"
 #include "NoWorkItemFragment_Equipable.generated.h"
 
-/**
- * 
- */
+class ULyraAbilitySet;
+
 UCLASS()
 class LYRAGAME_API UNoWorkItemFragment_Equipable : public UNoWorkItemFragment
 {
