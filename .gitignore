@@ -9,11 +9,13 @@ Plugins/GameFeatures/TopDownArena/*
 Plugins/GameFeatures/ShooterTests/*
 Plugins/GameFeatures/ShooterExplorer/*
 Plugins/GameFeatures/ShooterCore/*
+Plugins/PocketWorlds/*
+Plugins/LyraExtTool/*
 Content/*
 
 #제외
 
-*.uasset
+#*.uasset
 
 
 # NoWork 반드시 포함
