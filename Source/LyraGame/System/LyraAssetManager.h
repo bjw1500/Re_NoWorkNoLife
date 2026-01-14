@@ -27,6 +27,7 @@ struct FLyraBundles
  */
 
 class UNoWorkItemData;
+class UNoWorkUIData;
 
 UCLASS(Config = Game)
 class ULyraAssetManager : public UAssetManager
@@ -54,6 +55,7 @@ public:
 	const ULyraGameData& GetGameData();
 	const ULyraPawnData* GetDefaultPawnData() const;
 	const UNoWorkItemData& GetItemData();
+	const UNoWorkUIData& GetUIData();
 
 protected:
 	template <typename GameDataClass>
@@ -101,6 +103,8 @@ protected:
 	UPROPERTY(Config)
 	TSoftObjectPtr<UNoWorkItemData> ItemDataPath;
 
+	UPROPERTY(Config)
+	TSoftObjectPtr<UNoWorkUIData> UIDataPath;
 	
 private:
 	// Flushes the StartupJobs array. Processes all startup work.

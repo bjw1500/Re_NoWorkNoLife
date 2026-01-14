@@ -14,6 +14,7 @@
 #include "System/LyraAssetManagerStartupJob.h"
 
 #include "NoWorkNoLife/Data/NoWorkItemData.h"
+#include "NoWorkNoLife/Data/NoWorkUIData.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(LyraAssetManager)
 
@@ -118,6 +119,7 @@ void ULyraAssetManager::StartInitialLoading()
 		// Load base game data asset
 		STARTUP_JOB_WEIGHTED(GetGameData(), 25.f);
 		STARTUP_JOB_WEIGHTED(GetItemData(), 25.f);
+		STARTUP_JOB_WEIGHTED(GetUIData(), 25.f);
 	}
 
 	// Run all the queued up startup jobs
@@ -147,6 +149,11 @@ const ULyraPawnData* ULyraAssetManager::GetDefaultPawnData() const
 const UNoWorkItemData& ULyraAssetManager::GetItemData()
 {
 	return GetOrLoadTypedGameData<UNoWorkItemData>(ItemDataPath);
+}
+
+const UNoWorkUIData& ULyraAssetManager::GetUIData()
+{
+	return GetOrLoadTypedGameData<UNoWorkUIData>(UIDataPath);
 }
 
 UPrimaryDataAsset* ULyraAssetManager::LoadGameDataOfClass(TSubclassOf<UPrimaryDataAsset> DataClass, const TSoftObjectPtr<UPrimaryDataAsset>& DataClassPath, FPrimaryAssetType PrimaryAssetType)
