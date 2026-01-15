@@ -4,13 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "NoWorkNoLife/UI/NoWorkUserWidget.h"
-#include "NoWorkSlotWidget.generated.h"
+#include "NoWorkEntryWidget.generated.h"
 
-/**
- * 
- */
+
 UCLASS()
-class LYRAGAME_API UNoWorkSlotWidget : public UNoWorkUserWidget
+class LYRAGAME_API UNoWorkEntryWidget : public UNoWorkUserWidget
 {
 	GENERATED_BODY()
 	

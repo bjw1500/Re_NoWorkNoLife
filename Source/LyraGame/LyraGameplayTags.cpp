@@ -69,6 +69,7 @@ namespace LyraGameplayTags
 	//Message
 	UE_DEFINE_GAMEPLAY_TAG(Message_Interaction_Notice,						"Message.Interaction.Notice");
 	UE_DEFINE_GAMEPLAY_TAG(Message_Interaction_Progress,					"Message.Interaction.Progress");
+	UE_DEFINE_GAMEPLAY_TAG(Message_Initialize_OtherInventory,				"Message.Initialize.OtherInventory");
 	
 	// Unreal Movement Modes
 	const TMap<uint8, FGameplayTag> MovementModeTagMap =

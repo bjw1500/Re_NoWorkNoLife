@@ -1,6 +1,16 @@
 ﻿#include "NoWorkGameplayAbility_Interact_Chest.h"
 
+#include "CommonActivatableWidget.h"
+#include "LyraGameplayTags.h"
+#include "Actions/AsyncAction_PushContentToLayerForPlayer.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
+#include "Player/LyraPlayerController.h"
+
 #include "NoWorkNoLife/Actors/NoWorkChestBase.h"
+#include "NoWorkNoLife/UI/NoWorkEntryWidget.h"
+#include "NoWorkNoLife/UI/Inventory/NoWorkInventorySlotsWidget.h"
+
+#include "NoWorkNoLife/Item/Managers/NoWorkInventoryManagerComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(NoWorkGameplayAbility_Interact_Chest)
 
@@ -38,21 +48,27 @@ void UNoWorkGameplayAbility_Interact_Chest::ActivateAbility(const FGameplayAbili
 		ChestActor->SetChestState(EChestState::Open);
 	}
 	
-	// if (HasAuthority(&CurrentActivationInfo))
-	// {
-	// 	UD1ItemManagerComponent* MyItemManager = GetLyraPlayerControllerFromActorInfo()->GetComponentByClass<UD1ItemManagerComponent>();
-	// 	UD1InventoryManagerComponent* OtherInventoryManager = InteractableActor->GetComponentByClass<UD1InventoryManagerComponent>();
-	// 	MyItemManager->AddAllowedComponent(OtherInventoryManager);
-	// }
-	//
-	// if (IsLocallyControlled())
-	// {
-	// 	if (UAsyncAction_PushContentToLayerForPlayer* PushWidgetAction = UAsyncAction_PushContentToLayerForPlayer::PushContentToLayerForPlayer(GetLyraPlayerControllerFromActorInfo(), WidgetClass, WidgetLayerTag, true))
-	// 	{
-	// 		PushWidgetAction->AfterPush.AddDynamic(this, &ThisClass::OnAfterPushWidget);
-	// 		PushWidgetAction->Activate();
-	// 	}
-	// }
+	if (HasAuthority(&CurrentActivationInfo))
+	{
+		// UD1ItemManagerComponent* MyItemManager = GetLyraPlayerControllerFromActorInfo()->GetComponentByClass<UD1ItemManagerComponent>();
+		// UD1InventoryManagerComponent* OtherInventoryManager = InteractableActor->GetComponentByClass<UD1InventoryManagerComponent>();
+		// MyItemManager->AddAllowedComponent(OtherInventoryManager);
+	}
+
+	//상자와 상호작용시 해당 플레이어에게 상자의 Inventory를 볼 수 있는 UI를 열어준다.
+	if (IsLocallyControlled())
+	{
+		if (UAsyncAction_PushContentToLayerForPlayer* PushWidgetAction =
+			UAsyncAction_PushContentToLayerForPlayer::PushContentToLayerForPlayer(
+				GetLyraPlayerControllerFromActorInfo(),
+				WidgetClass,
+				WidgetLayerTag,
+				true))
+		{
+			PushWidgetAction->AfterPush.AddDynamic(this, &ThisClass::OnAfterPushWidget);
+			PushWidgetAction->Activate();
+		}
+	}
 }
 
 void UNoWorkGameplayAbility_Interact_Chest::EndAbility(const FGameplayAbilitySpecHandle Handle,
@@ -69,14 +85,26 @@ void UNoWorkGameplayAbility_Interact_Chest::EndAbility(const FGameplayAbilitySpe
 	// 	}
 	// }
 	//
-	// if (IsLocallyControlled() && PushedWidget)
-	// {
-	// 	PushedWidget->DeactivateWidget();
-	// }
+	if (IsLocallyControlled() && PushedWidget)
+	{
+		PushedWidget->DeactivateWidget();
+	}
 	
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 void UNoWorkGameplayAbility_Interact_Chest::OnAfterPushWidget(UCommonActivatableWidget* InPushedWidget)
 {
+	PushedWidget = InPushedWidget;
+	
+	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(this);
+	
+	FInventoryInitializeMessage OtherInventoryInitMessage;
+	OtherInventoryInitMessage.InventoryManager = InteractableActor->GetComponentByClass<UNoWorkInventoryManagerComponent>();
+	MessageSubsystem.BroadcastMessage(LyraGameplayTags::Message_Initialize_OtherInventory, OtherInventoryInitMessage);
+	
+	InPushedWidget->OnDeactivated().AddLambda([this]()
+	{	
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+	});
 }

@@ -73,5 +73,6 @@ namespace LyraGameplayTags
 	//Message
 	LYRAGAME_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Interaction_Notice);
 	LYRAGAME_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Interaction_Progress);
+	LYRAGAME_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Initialize_OtherInventory);
 	
 };

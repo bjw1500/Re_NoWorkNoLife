@@ -141,6 +141,7 @@ void UNoWorkInventoryManagerComponent::GetLifetimeReplicatedProps(TArray<FLifeti
 
 	DOREPLIFETIME(ThisClass, InventoryList);
 	DOREPLIFETIME(ThisClass, SlotChecks);
+	DOREPLIFETIME(ThisClass, InventorySlotCount);
 }
 
 bool UNoWorkInventoryManagerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch,
@@ -439,6 +440,70 @@ int32 UNoWorkInventoryManagerComponent::GetTotalCountByID(int32 ItemTemplateID) 
 	}
 	
 	return TotalCount;
+}
+
+void UNoWorkInventoryManagerComponent::ResetSlot(FIntPoint NewSlotCount)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		// 1) 기존 아이템 캐싱 (템플릿 ID/레어리티/개수)
+		struct FCachedItem
+		{
+			int32 ItemTemplateID = INDEX_NONE;
+			EItemRarity Rarity = EItemRarity::Poor;
+			int32 Count = 0;
+		};
+
+		TArray<FCachedItem> CachedItems;
+		CachedItems.Reserve(InventoryList.Entries.Num());
+
+		for (const FNoWorkInventoryEntry& Entry : InventoryList.Entries)
+		{
+			if (UNoWorkItemInstance* ItemInstance = Entry.GetItemInstance())
+			{
+				const int32 Count = Entry.GetItemCount();
+				if (Count > 0)
+				{
+					FCachedItem Cached;
+					Cached.ItemTemplateID = ItemInstance->GetItemTemplateID();
+					Cached.Rarity = ItemInstance->GetItemRarity();
+					Cached.Count = Count;
+					CachedItems.Add(Cached);
+				}
+			}
+		}
+
+		// 2) 슬롯 재설정 (비우고 새 사이즈로 구성)
+		InventorySlotCount = NewSlotCount;
+		
+		TArray<FNoWorkInventoryEntry>& Entries = InventoryList.Entries;
+		Entries.Empty();
+		Entries.SetNum(InventorySlotCount.X * InventorySlotCount.Y);
+	
+		for (FNoWorkInventoryEntry& Entry : Entries)
+		{
+			InventoryList.MarkItemDirty(Entry);
+		}
+
+		SlotChecks.Empty();
+		SlotChecks.SetNumZeroed(InventorySlotCount.X * InventorySlotCount.Y);
+
+		// 3) 캐싱한 아이템 재배치 시도 (수용 불가분은 로그)
+		if (CachedItems.Num() > 0)
+		{
+			for (const FCachedItem& Item : CachedItems)
+			{
+				const UNoWorkItemTemplate& ItemTemplate = UNoWorkItemData::Get().FindItemTemplateByID(Item.ItemTemplateID);
+				const TSubclassOf<UNoWorkItemTemplate> ItemTemplateClass = ItemTemplate.GetClass();
+
+				const int32 Added = TryAddItemByRarity(ItemTemplateClass, Item.Rarity, Item.Count);
+				if (Added < Item.Count)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[InventoryManager] Resize overflow: TemplateID=%d Rarity=%d Count=%d"), Item.ItemTemplateID, static_cast<int32>(Item.Rarity), Item.Count - Added);
+				}
+			}
+		}
+	}
 }
 
 

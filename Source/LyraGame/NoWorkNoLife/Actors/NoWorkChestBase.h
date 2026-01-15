@@ -69,6 +69,9 @@ public:
 	void SetChestState(EChestState NewChestState);
 
 	EChestState GetChestState() {return ChestState;}
+
+	void SetInventorySlotCount(FIntPoint NewSlotCount);
+	FIntPoint GetInventorySlotCount() {return InventorySlotCount;};
 	
 private:
 	UFUNCTION()
@@ -95,6 +98,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Info")
 	TArray<FItemAddRule> ItemAddRules;
 
+	UPROPERTY(EditDefaultsOnly, Category="Info")
+	FIntPoint InventorySlotCount = FIntPoint(10, 5);
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UArrowComponent> ArrowComponent;

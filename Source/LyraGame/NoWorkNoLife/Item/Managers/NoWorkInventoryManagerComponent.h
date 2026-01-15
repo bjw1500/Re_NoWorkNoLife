@@ -32,10 +32,10 @@ private:
 	friend struct FNoWorkInventoryList;
 	friend class UNoWorkInventoryManagerComponent;
 	
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, Category="Inventory", meta=(EditInline))
 	TObjectPtr<UNoWorkItemInstance> ItemInstance;
 
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, Category="Inventory")
 	int32 ItemCount = 0;
 };
 
@@ -63,7 +63,7 @@ public:
 private:
 	friend class UNoWorkInventoryManagerComponent;
 	
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly, Category="Inventory")
 	TArray<FNoWorkInventoryEntry> Entries;
 	
 	UPROPERTY(NotReplicated)
@@ -122,17 +122,20 @@ public:
 	FIntPoint GetInventorySlotCount() const { return InventorySlotCount; }
 	TArray<bool>& GetSlotChecks() { return SlotChecks; }
 
+	void ResetSlot(FIntPoint NewSlotCount);
+	
 public:
 
 	FOnInventoryEntryChanged OnInventoryEntryChanged;
 	
 private:
-	UPROPERTY(Replicated)
+	UPROPERTY(VisibleInstanceOnly, Replicated, Category="Inventory", meta=(ShowOnlyInnerProperties))
 	FNoWorkInventoryList InventoryList;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY(VisibleInstanceOnly, Replicated, Category="Inventory")
 	TArray<bool> SlotChecks;
-	
+
+	UPROPERTY(VisibleInstanceOnly, Replicated, Category="Inventory")
 	FIntPoint InventorySlotCount = FIntPoint(10, 5);
 	
 };

@@ -3,8 +3,9 @@
 #include "Net/UnrealNetwork.h"
 #include "NoWorkNoLife/Data/NoWorkItemData.h"
 #include "NoWorkNoLife/Item/NoWorkItemTemplate.h"
-
 #include "NoWorkNoLife/Item//Managers/NoWorkInventoryManagerComponent.h"
+
+#include "NoWorkNoLife/BlueprintFunctionLibrary/NoWorkBlueprintFunctionLibrary.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(NoWorkChestBase)
 
@@ -39,6 +40,9 @@ void ANoWorkChestBase::BeginPlay()
 	if (HasAuthority() == false)
 		return;
 
+
+	InventoryManager->ResetSlot(InventorySlotCount);
+	
 	const TArray<TSubclassOf<UNoWorkItemTemplate>>& WeaponItemTemplateClasses = UNoWorkItemData::Get().GetWeaponItemTemplateClasses();
 	const TArray<TSubclassOf<UNoWorkItemTemplate>>& ArmorItemTemplateClasses = UNoWorkItemData::Get().GetArmorItemTemplateClasses();
 
@@ -60,7 +64,13 @@ void ANoWorkChestBase::BeginPlay()
 		case EItemAddType::Armor:	SelectedItemTemplateClasses = &ArmorItemTemplateClasses;				break;
 		case EItemAddType::Custom:	SelectedItemTemplateClasses = &ItemAddRule.CustomItemTemplateClasses;	break;
 		}
-	
+
+		if (SelectedItemTemplateClasses->Num() == 0)
+		{
+			DEBUG_MESSAGE;
+			continue;
+		}
+		
 		if (SelectedItemTemplateClasses)
 		{
 			int32 SelectedItemTemplateIndex = FMath::RandRange(0, SelectedItemTemplateClasses->Num() - 1);
@@ -108,6 +118,14 @@ void ANoWorkChestBase::SetChestState(EChestState NewChestState)
 
 	ChestState = NewChestState;
 	OnRep_ChestState();
+}
+
+void ANoWorkChestBase::SetInventorySlotCount(FIntPoint NewSlotCount)
+{
+	InventorySlotCount = NewSlotCount;
+
+	//기존에 있던 인벤토리는 리셋 후 다시 세팅
+	InventoryManager->ResetSlot(InventorySlotCount);
 }
 
 // 상태 변경 시 대응 몽타주 재생
