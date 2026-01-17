@@ -186,8 +186,101 @@ void UNoWorkInventoryManagerComponent::ReadyForReplication()
 	}
 }
 
+int32 UNoWorkInventoryManagerComponent::CanMoveOrMergeItem(UNoWorkInventoryManagerComponent* OtherComponent,
+	const FIntPoint& FromItemSlotPos, const FIntPoint& ToItemSlotPos) const
+{
+	// 인벤토리 -> 인벤토리 간 이동/합치기 가능 수량 계산.
+	// - 위치 유효성, 템플릿/희귀도 일치, 스택 한도, 대상 영역 여유 등을 검사.
+	// 반환: 실제 이동 가능한 개수(0이면 불가).
+	if (OtherComponent == nullptr)
+		return 0;
+
+	const FIntPoint& FromInventorySlotCount = OtherComponent->GetInventorySlotCount();
+	if (FromItemSlotPos.X < 0 || FromItemSlotPos.Y < 0 || FromItemSlotPos.X >= FromInventorySlotCount.X || FromItemSlotPos.Y >= FromInventorySlotCount.Y)
+		return 0;
+	
+	if (ToItemSlotPos.X < 0 || ToItemSlotPos.Y < 0 || ToItemSlotPos.X >= InventorySlotCount.X || ToItemSlotPos.Y >= InventorySlotCount.Y)
+		return 0;
+	
+	const UNoWorkItemInstance* FromItemInstance = OtherComponent->GetItemInstance(FromItemSlotPos);
+	const int32 FromItemCount = OtherComponent->GetItemCount(FromItemSlotPos);
+	
+	if (this == OtherComponent && FromItemSlotPos == ToItemSlotPos)
+		return FromItemCount;
+	
+	if (FromItemInstance == nullptr || FromItemCount <= 0)
+		return 0;
+	
+	const UNoWorkItemInstance* ToItemInstance = GetItemInstance(ToItemSlotPos);
+	const int32 ToItemCount = GetItemCount(ToItemSlotPos);
+	
+	const int32 FromTemplateID = FromItemInstance->GetItemTemplateID();
+	const UNoWorkItemTemplate& FromItemTemplate = UNoWorkItemData::Get().FindItemTemplateByID(FromTemplateID);
+	
+	if (ToItemInstance)
+	{
+		const int32 ToTemplateID = ToItemInstance->GetItemTemplateID();
+		if (FromTemplateID != ToTemplateID)
+			return 0;
+
+		if (FromItemInstance->GetItemRarity() != ToItemInstance->GetItemRarity())
+			return 0;
+		
+		if (FromItemTemplate.MaxStackCount < 2)
+			return 0;
+
+		return FMath::Min(FromItemCount + ToItemCount, FromItemTemplate.MaxStackCount) - ToItemCount;
+	}
+	else
+	{
+		const FIntPoint& FromItemSlotCount = FromItemTemplate.SlotCount;
+		if (ToItemSlotPos.X + FromItemSlotCount.X > InventorySlotCount.X || ToItemSlotPos.Y + FromItemSlotCount.Y > InventorySlotCount.Y)
+			return 0;
+
+		//내 인벤토리에서 옮기는 경우라면,
+		if (this == OtherComponent)
+		{
+			//시뮬레이션을 위해 복사한 슬롯으로 테스트 한다.
+			TArray<bool> TempSlotChecks = SlotChecks;
+			MarkSlotChecks(TempSlotChecks, false, FromItemSlotPos, FromItemSlotCount);
+
+			//해당 아이템이 해당 위치에 들어갈 수 있는지 판단한다.
+			return IsEmpty(TempSlotChecks, ToItemSlotPos, FromItemSlotCount) ? FromItemCount : 0;
+		}
+		else
+		{
+			return IsEmpty(ToItemSlotPos, FromItemSlotCount) ? FromItemCount : 0;
+		}
+	}
+}
+
+int32 UNoWorkInventoryManagerComponent::CanMoveOrMergeItem_Quick(UNoWorkInventoryManagerComponent* OtherComponent,
+	const FIntPoint& FromItemSlotPos, TArray<FIntPoint>& OutToItemSlotPoses, TArray<int32>& OutToItemCounts) const
+{
+	// 인벤토리 -> 인벤토리 빠른 이동 경로.
+	// 목적: 한 번의 질의로 배치 가능한 후보 슬롯과 각 슬롯에 넣을 수량을 산출.
+	// 출력: OutToItemSlotPoses/OutToItemCounts에 병렬로 채움.
+	OutToItemSlotPoses.Reset();
+	OutToItemCounts.Reset();
+	
+	if (OtherComponent == nullptr || this == OtherComponent)
+		return 0;
+
+	const FIntPoint& FromInventorySlotCount = OtherComponent->GetInventorySlotCount();
+	if (FromItemSlotPos.X < 0 || FromItemSlotPos.Y < 0 || FromItemSlotPos.X >= FromInventorySlotCount.X || FromItemSlotPos.Y >= FromInventorySlotCount.Y)
+		return 0;
+	
+	const UNoWorkItemInstance* FromItemInstance = OtherComponent->GetItemInstance(FromItemSlotPos);
+	const int32 FromItemCount = OtherComponent->GetItemCount(FromItemSlotPos);
+
+	if (FromItemInstance == nullptr)
+		return 0;
+	
+	return CanAddItem(FromItemInstance->GetItemTemplateID(), FromItemInstance->GetItemRarity(), FromItemCount, OutToItemSlotPoses, OutToItemCounts);
+}
+
 int32 UNoWorkInventoryManagerComponent::CanAddItem(int32 ItemTemplateID, EItemRarity ItemRarity, int32 ItemCount,
-	TArray<FIntPoint>& OutToItemSlotPoses, TArray<int32>& OutToItemCounts) const
+                                                   TArray<FIntPoint>& OutToItemSlotPoses, TArray<int32>& OutToItemCounts) const
 {
 	// 주어진 템플릿/희귀도/수량을 인벤토리에 '최대 몇 개'까지 배치할 수 있는지 시뮬레이션.
 	// 절차:
@@ -330,8 +423,72 @@ int32 UNoWorkInventoryManagerComponent::TryAddItemByRarity(TSubclassOf<UNoWorkIt
 	return 0;
 }
 
+void UNoWorkInventoryManagerComponent::AddItem_Unsafe(const FIntPoint& ItemSlotPos, UNoWorkItemInstance* ItemInstance,
+	int32 ItemCount)
+{
+	// 서버 전용 내부 유틸: 지정 슬롯에 아이템을 강제 삽입/스택 증가.
+	// 전제: 외부에서 유효성(CanAddItem 등)을 보장해야 한다.
+	// - 새 삽입 시 SlotChecks 점유 처리, FastArray 더티 마킹, 등록식 경로면 AddReplicatedSubObject 호출.
+	check(GetOwner()->HasAuthority());
+	
+	const int32 Index = ItemSlotPos.Y * InventorySlotCount.X + ItemSlotPos.X;
+	FNoWorkInventoryEntry& Entry = InventoryList.Entries[Index];
+	
+	if (Entry.GetItemInstance())
+	{
+		Entry.ItemCount += ItemCount;
+		InventoryList.MarkItemDirty(Entry);
+	}
+	else
+	{
+		if (ItemInstance == nullptr)
+			return;
+		
+		const UNoWorkItemTemplate& ItemTemplate = UNoWorkItemData::Get().FindItemTemplateByID(ItemInstance->GetItemTemplateID());
+		
+		Entry.Init(ItemInstance, ItemCount);
+		
+		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && ItemInstance)
+		{
+			AddReplicatedSubObject(ItemInstance);
+		}
+
+		MarkSlotChecks(true, ItemSlotPos, ItemTemplate.SlotCount);
+		InventoryList.MarkItemDirty(Entry);
+	}
+}
+
+UNoWorkItemInstance* UNoWorkInventoryManagerComponent::RemoveItem_Unsafe(const FIntPoint& ItemSlotPos, int32 ItemCount)
+{
+	// 서버 전용 내부 유틸: 지정 슬롯의 수량을 차감하고, 0 이하면 슬롯을 비움.
+	// - 슬롯 비울 때 SlotChecks 해제 및(등록식 경로 시) RemoveReplicatedSubObject 호출.
+	// - FastArray 더티 마킹으로 복제를 트리거.
+	// 반환: 해당 슬롯의 아이템 인스턴스(비우기 전 포인터)
+	check(GetOwner()->HasAuthority());
+	
+	const int32 Index = ItemSlotPos.Y * InventorySlotCount.X + ItemSlotPos.X;
+	FNoWorkInventoryEntry& Entry = InventoryList.Entries[Index];
+	UNoWorkItemInstance* ItemInstance = Entry.GetItemInstance();
+	
+	Entry.ItemCount -= ItemCount;
+	if (Entry.GetItemCount() <= 0)
+	{
+		const UNoWorkItemTemplate& ItemTemplate = UNoWorkItemData::Get().FindItemTemplateByID(ItemInstance->GetItemTemplateID());
+		MarkSlotChecks(false, ItemSlotPos, ItemTemplate.SlotCount);
+		
+		UNoWorkItemInstance* RemovedItemInstance = Entry.Reset();
+		if (IsUsingRegisteredSubObjectList() && RemovedItemInstance)
+		{
+			RemoveReplicatedSubObject(RemovedItemInstance);
+		}
+	}
+	
+	InventoryList.MarkItemDirty(Entry);
+	return ItemInstance;
+}
+
 void UNoWorkInventoryManagerComponent::MarkSlotChecks(TArray<bool>& InSlotChecks, bool bIsUsing,
-	const FIntPoint& ItemSlotPos, const FIntPoint& ItemSlotCount) const
+                                                      const FIntPoint& ItemSlotPos, const FIntPoint& ItemSlotCount) const
 {
 	// 내부 그리드(슬롯 점유 테이블)에 대해 아이템이 차지하는 직사각형 영역을
 	// 사용/미사용(bIsUsing)으로 표시한다.
@@ -417,6 +574,19 @@ UNoWorkItemInstance* UNoWorkInventoryManagerComponent::GetItemInstance(const FIn
 	const FNoWorkInventoryEntry& Entry = Entries[EntryIndex];
 	
 	return Entry.GetItemInstance();
+}
+
+int32 UNoWorkInventoryManagerComponent::GetItemCount(const FIntPoint& ItemSlotPos) const
+{
+	// 지정 슬롯의 아이템 수량(빈 슬롯이면 0)을 반환.
+	if (ItemSlotPos.X < 0 || ItemSlotPos.Y < 0 || ItemSlotPos.X >= InventorySlotCount.X || ItemSlotPos.Y >= InventorySlotCount.Y)
+		return 0;
+	
+	const TArray<FNoWorkInventoryEntry>& Entries = InventoryList.GetAllEntries();
+	const int32 EntryIndex = ItemSlotPos.Y * InventorySlotCount.X + ItemSlotPos.X;
+	const FNoWorkInventoryEntry& Entry = Entries[EntryIndex];
+	
+	return Entry.GetItemCount();
 }
 
 const TArray<FNoWorkInventoryEntry>& UNoWorkInventoryManagerComponent::GetAllEntries() const

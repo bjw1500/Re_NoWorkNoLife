@@ -96,6 +96,13 @@ protected:
 	virtual void ReadyForReplication() override;
 
 public:
+
+	// 인벤/장비 → 인벤: 이동/병합 가능한 수량 계산(템플릿/희귀도/스택/격자 충돌 고려)
+	int32 CanMoveOrMergeItem(UNoWorkInventoryManagerComponent* OtherComponent, const FIntPoint& FromItemSlotPos, const FIntPoint& ToItemSlotPos) const;
+
+	// 빠른 이동용: 목적 슬롯 자동 탐색 및 분할 수량 산출
+	int32 CanMoveOrMergeItem_Quick(UNoWorkInventoryManagerComponent* OtherComponent, const FIntPoint& FromItemSlotPos, TArray<FIntPoint>& OutToItemSlotPoses, TArray<int32>& OutToItemCounts) const;
+	
 	// 템플릿/희귀도/수량을 기준으로 추가/제거 가능 분배 계획 계산
 	int32 CanAddItem(int32 ItemTemplateID, EItemRarity ItemRarity, int32 ItemCount, TArray<FIntPoint>& OutToItemSlotPoses, TArray<int32>& OutToItemCounts) const;
 
@@ -103,6 +110,13 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	// 희귀도 고정 방식으로 아이템 추가 시도(성공 수량 반환)
 	int32 TryAddItemByRarity(TSubclassOf<UNoWorkItemTemplate> ItemTemplateClass, EItemRarity ItemRarity, int32 ItemCount);
+
+private:
+
+	// 내부 실행 전용(사전 검증 필수): 인벤 추가/제거
+	void AddItem_Unsafe(const FIntPoint& ItemSlotPos, UNoWorkItemInstance* ItemInstance, int32 ItemCount);
+	UNoWorkItemInstance* RemoveItem_Unsafe(const FIntPoint& ItemSlotPos, int32 ItemCount);
+
 private:
 	void MarkSlotChecks(TArray<bool>& InSlotChecks, bool bIsUsing, const FIntPoint& ItemSlotPos, const FIntPoint& ItemSlotCount) const;
 	void MarkSlotChecks(bool bIsUsing, const FIntPoint& ItemSlotPos, const FIntPoint& ItemSlotCount);
@@ -129,6 +143,9 @@ public:
 	FOnInventoryEntryChanged OnInventoryEntryChanged;
 	
 private:
+
+	friend class UNoWorkItemManagerComponent;
+	
 	UPROPERTY(VisibleInstanceOnly, Replicated, Category="Inventory", meta=(ShowOnlyInnerProperties))
 	FNoWorkInventoryList InventoryList;
 	
@@ -136,6 +153,6 @@ private:
 	TArray<bool> SlotChecks;
 
 	UPROPERTY(VisibleInstanceOnly, Replicated, Category="Inventory")
-	FIntPoint InventorySlotCount = FIntPoint(10, 5);
+	FIntPoint InventorySlotCount = FIntPoint(10, 10);
 	
 };
