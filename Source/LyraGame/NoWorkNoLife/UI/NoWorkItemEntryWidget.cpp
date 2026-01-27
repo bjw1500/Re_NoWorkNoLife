@@ -35,27 +35,10 @@ void UNoWorkItemEntryWidget::NativeDestruct()
 
 void UNoWorkItemEntryWidget::RefreshUI(UNoWorkItemInstance* NewItemInstance, int32 NewItemCount)
 {
-	if (NewItemInstance == nullptr || NewItemCount < 1)
-		return;
-    
-	ItemInstance = NewItemInstance;
-	ItemCount = NewItemCount;
-
-	const UNoWorkItemTemplate& ItemTemplate = UNoWorkItemData::Get().FindItemTemplateByID(ItemInstance->GetItemTemplateID());
-	// 아이콘/수량/희귀도 배경 갱신
-	Image_Icon->SetBrushFromTexture(ItemTemplate.IconTexture, true);
-	Text_Count->SetText(ItemCount <= 1 ? FText::GetEmpty() : FText::AsNumber(ItemCount));
-
-	UTexture2D* RarityTexture = UNoWorkUIData::Get().GetEntryRarityTexture(ItemInstance->GetItemRarity());
-	Image_RarityCover->SetBrushFromTexture(RarityTexture, true);
-
-	//아이템 아이콘이 없으면 임시 방편으로 이름만 표시한다.
-	if (ItemTemplate.IconTexture == nullptr)
-	{
-		Text_TempName->SetText(ItemTemplate.DisplayName);
-	}
+	Super::RefreshUI(NewItemInstance, NewItemCount);
 }
 
 void UNoWorkItemEntryWidget::RefreshItemCount(int32 NewItemCount)
 {
+	Super::RefreshItemCount(NewItemCount);
 }

@@ -11,6 +11,7 @@
 #include "NoWorkNoLife/UI/Inventory/NoWorkInventorySlotsWidget.h"
 
 #include "NoWorkNoLife/Item/Managers/NoWorkInventoryManagerComponent.h"
+#include "NoWorkNoLife/Item/Managers/NoWorkItemManagerComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(NoWorkGameplayAbility_Interact_Chest)
 
@@ -50,9 +51,9 @@ void UNoWorkGameplayAbility_Interact_Chest::ActivateAbility(const FGameplayAbili
 	
 	if (HasAuthority(&CurrentActivationInfo))
 	{
-		// UD1ItemManagerComponent* MyItemManager = GetLyraPlayerControllerFromActorInfo()->GetComponentByClass<UD1ItemManagerComponent>();
-		// UD1InventoryManagerComponent* OtherInventoryManager = InteractableActor->GetComponentByClass<UD1InventoryManagerComponent>();
-		// MyItemManager->AddAllowedComponent(OtherInventoryManager);
+		UNoWorkItemManagerComponent* MyItemManager = GetLyraPlayerControllerFromActorInfo()->GetComponentByClass<UNoWorkItemManagerComponent>();
+		UNoWorkInventoryManagerComponent* OtherInventoryManager = InteractableActor->GetComponentByClass<UNoWorkInventoryManagerComponent>();
+		MyItemManager->AddAllowedComponent(OtherInventoryManager);
 	}
 
 	//상자와 상호작용시 해당 플레이어에게 상자의 Inventory를 볼 수 있는 UI를 열어준다.
@@ -76,15 +77,15 @@ void UNoWorkGameplayAbility_Interact_Chest::EndAbility(const FGameplayAbilitySpe
 	bool bReplicateEndAbility, bool bWasCancelled)
 {
 
-	// if (HasAuthority(&CurrentActivationInfo))
-	// {
-	// 	if (UD1ItemManagerComponent* MyItemManager = GetLyraPlayerControllerFromActorInfo()->GetComponentByClass<UD1ItemManagerComponent>())
-	// 	{
-	// 		UD1InventoryManagerComponent* OtherInventoryManager = InteractableActor->GetComponentByClass<UD1InventoryManagerComponent>();
-	// 		MyItemManager->RemoveAllowedComponent(OtherInventoryManager);
-	// 	}
-	// }
-	//
+	if (HasAuthority(&CurrentActivationInfo))
+	{
+		if (UNoWorkItemManagerComponent* MyItemManager = GetLyraPlayerControllerFromActorInfo()->GetComponentByClass<UNoWorkItemManagerComponent>())
+		{
+			UNoWorkInventoryManagerComponent* OtherInventoryManager = InteractableActor->GetComponentByClass<UNoWorkInventoryManagerComponent>();
+			MyItemManager->RemoveAllowedComponent(OtherInventoryManager);
+		}
+	}
+	
 	if (IsLocallyControlled() && PushedWidget)
 	{
 		PushedWidget->DeactivateWidget();

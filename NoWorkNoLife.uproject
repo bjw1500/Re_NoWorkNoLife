@@ -13,7 +13,8 @@
 				"Engine",
 				"UMG",
 				"CommonUI",
-				"CoreUObject"
+				"CoreUObject",
+				"ModularGameplay"
 			]
 		},
 		{

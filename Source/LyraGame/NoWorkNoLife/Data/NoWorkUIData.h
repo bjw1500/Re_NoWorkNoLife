@@ -11,6 +11,7 @@
 class UNoWorkInventoryValidWidget;
 class UNoWorkInventoryEntryWidget;
 class UNoWorkInventorySlotWidget;
+class UNoWorkItemHoverWidget;
 
 // 아이템 희귀도별 UI 표시 정보를 정의하는 구조체
 // - 배열(RarityInfoEntries)로 관리되며, 인덱스는 EItemRarity를 그대로 사용
@@ -55,20 +56,18 @@ public:
 public:
 
 	UPROPERTY(EditDefaultsOnly)
-	// 인벤토리 슬롯(배경) 위젯 클래스
-	// 인벤토리 개별 슬롯 위젯 클래스
 	TSubclassOf<UNoWorkInventorySlotWidget> InventorySlotWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly)
-	// 인벤토리 엔트리 위젯 클래스
-	// 인벤토리 엔트리(아이템 셀) 위젯 클래스
 	TSubclassOf<UNoWorkInventoryEntryWidget> InventoryEntryWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly)
-	// 인벤토리 유효표시(Valid) 위젯 클래스
-	// 인벤토리 유효/무효 표기(Valid/Invalid) 위젯 클래스
 	TSubclassOf<UNoWorkInventoryValidWidget> InventoryValidWidgetClass;
 	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UNoWorkItemHoverWidget> ItemHoverWidgetClass;
+	
+
 	
 private:
 
