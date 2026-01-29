@@ -12,9 +12,14 @@
 
 #include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
+#include "NoWorkNoLife/Data/NoWorkItemData.h"
 #include "NoWorkNoLife/Data/NoWorkUIData.h"
+#include "NoWorkNoLife/Item/NoWorkItemInstance.h"
+#include "NoWorkNoLife/Item/NoWorkItemTemplate.h"
 
 #include "NoWorkNoLife/Item/Managers/NoWorkInventoryManagerComponent.h"
+#include "NoWorkNoLife/Item/Managers/NoWorkItemManagerComponent.h"
+#include "NoWorkNoLife/UI/NoWorkItemDragDrop.h"
 
 UNoWorkInventorySlotsWidget::UNoWorkInventorySlotsWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -46,6 +51,135 @@ void UNoWorkInventorySlotsWidget::NativeDestruct()
 	MessageSubsystem.UnregisterListener(MessageListenerHandle);
     
 	Super::NativeDestruct();
+}
+
+bool UNoWorkInventorySlotsWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragOver(InGeometry, InDragDropEvent, InOperation);
+    
+    // 인벤토리/장비 항목 드래그가 아니면 처리하지 않음
+    UNoWorkItemDragDrop* DragDrop = Cast<UNoWorkItemDragDrop>(InOperation);
+    if (DragDrop == nullptr)
+        return false;
+
+    // 슬롯 한 칸의 픽셀 크기(그리드 스냅 기준)
+    FIntPoint UnitInventorySlotSize = UNoWorkUIData::Get().UnitInventorySlotSize;
+    
+    // 마우스 화면 좌표 → 슬롯 컨테이너 로컬 좌표
+    FVector2D MouseWidgetPos = GetSlotContainerGeometry().AbsoluteToLocal(InDragDropEvent.GetScreenSpacePosition());
+    // 드래그 시작 지점 대비 델타를 보정해 실제 배치 기준 좌표 계산
+    FVector2D ToWidgetPos = MouseWidgetPos - DragDrop->DeltaWidgetPos;
+    // 로컬 픽셀 좌표를 슬롯 인덱스로 변환
+    FIntPoint ToItemSlotPos = FIntPoint(ToWidgetPos.X / UnitInventorySlotSize.X, ToWidgetPos.Y / UnitInventorySlotSize.Y);
+
+    // 같은 셀을 계속 가리키면 재계산 생략
+    if (PrevDragOverSlotPos == ToItemSlotPos)
+        return true;
+    
+    // 최근 드래그오버 좌표 갱신
+    PrevDragOverSlotPos = ToItemSlotPos;
+    
+    // 드래그 중인 아이템 인스턴스 확인
+    UNoWorkItemEntryWidget* FromEntryWidget = DragDrop->FromEntryWidget;
+    UNoWorkItemInstance* FromItemInstance = FromEntryWidget->GetItemInstance();
+    if (FromItemInstance == nullptr)
+        return false;
+    
+    // 아이템 템플릿으로 필요한 슬롯 크기(가로/세로 칸 수) 조회
+    const UNoWorkItemTemplate& FromItemTemplate = UNoWorkItemData::Get().FindItemTemplateByID(FromItemInstance->GetItemTemplateID());
+    const FIntPoint& FromItemSlotCount = FromItemTemplate.SlotCount;
+
+    // 해당 위치로 이동/합치기 가능한지 질의
+    int32 MovableCount = 0;
+    if (UNoWorkInventoryManagerComponent* FromInventoryManager = DragDrop->FromInventoryManager)
+    {
+        // 인벤토리 → 인벤토리 이동/합치기 가능 수량
+        MovableCount = InventoryManager->CanMoveOrMergeItem(FromInventoryManager, DragDrop->FromItemSlotPos, ToItemSlotPos);
+    }
+    
+    // 기존 하이라이트 초기화
+    ResetValidSlots();
+
+    // 인벤토리 전체 슬롯 가로/세로 칸 수
+    const FIntPoint& InventorySlotCount = InventoryManager->GetInventorySlotCount();
+    
+    // 아이템 크기를 고려한 하이라이트 영역 시작/끝(경계 클램프)
+    const FIntPoint StartSlotPos = FIntPoint(FMath::Max(0, ToItemSlotPos.X), FMath::Max(0, ToItemSlotPos.Y));
+    const FIntPoint EndSlotPos   = FIntPoint(FMath::Min(ToItemSlotPos.X + FromItemSlotCount.X, InventorySlotCount.X),
+                                             FMath::Min(ToItemSlotPos.Y + FromItemSlotCount.Y, InventorySlotCount.Y));
+
+    // 이동 가능 여부에 따라 유효/무효 상태 선택
+    ESlotState SlotState = (MovableCount > 0) ? ESlotState::Valid : ESlotState::Invalid;
+    for (int32 y = StartSlotPos.Y; y < EndSlotPos.Y; y++)
+    {
+        for (int32 x = StartSlotPos.X; x < EndSlotPos.X; x++)
+        {
+            int32 Index = y * InventorySlotCount.X + x;
+            if (UNoWorkInventoryValidWidget* ValidWidget = ValidWidgets[Index])
+            {
+                ValidWidget->ChangeSlotState(SlotState);
+            }
+        }
+    }
+    return true;
+}
+
+void UNoWorkInventorySlotsWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
+
+	// 드래그 종료 처리(하이라이트 초기화)
+	FinishDrag();
+}
+
+bool UNoWorkInventorySlotsWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
+
+	// 하이라이트/상태 초기화
+	FinishDrag();
+
+	// 슬롯 한 칸의 픽셀 크기(그리드 스냅 기준)
+	FIntPoint UnitInventorySlotSize = UNoWorkUIData::Get().UnitInventorySlotSize;
+    
+	// 필수: 인벤토리/장비 드래그 정보
+	UNoWorkItemDragDrop* DragDrop = Cast<UNoWorkItemDragDrop>(InOperation);
+	check(DragDrop);
+
+	UNoWorkItemEntryWidget* FromEntryWidget = DragDrop->FromEntryWidget;
+	// 드래그 원본 엔트리의 투명도 복구
+	FromEntryWidget->RefreshWidgetOpacity(true);
+    
+	// 드롭 지점 슬롯 좌표 계산
+	FVector2D MouseWidgetPos = GetSlotContainerGeometry().AbsoluteToLocal(InDragDropEvent.GetScreenSpacePosition());
+	FVector2D ToWidgetPos = MouseWidgetPos - DragDrop->DeltaWidgetPos;
+	FIntPoint ToItemSlotPos = FIntPoint(ToWidgetPos.X / UnitInventorySlotSize.X, ToWidgetPos.Y / UnitInventorySlotSize.Y);
+
+	// 드롭 대상 정보 저장(후처리용)
+	DragDrop->ToInventoryManager = InventoryManager;
+	DragDrop->ToItemSlotPos = ToItemSlotPos;
+
+	// 서버 RPC를 호출할 아이템 매니저
+	UNoWorkItemManagerComponent* ItemManager = GetOwningPlayer()->FindComponentByClass<UNoWorkItemManagerComponent>();
+	check(ItemManager);
+    
+	if (UNoWorkInventoryManagerComponent* FromInventoryManager = DragDrop->FromInventoryManager)
+	{
+		// 인벤토리 → 인벤토리 이동/합치기 요청
+		ItemManager->Server_InventoryToInventory(FromInventoryManager, DragDrop->FromItemSlotPos, InventoryManager, ToItemSlotPos);
+	}
+	
+	return true;
+}
+
+void UNoWorkInventorySlotsWidget::FinishDrag()
+{
+	ResetValidSlots();
+	// 유효하지 않은 좌표로 리셋(다음 드래그오버에 재계산 유도)
+	PrevDragOverSlotPos = FIntPoint(-1, -1);
 }
 
 void UNoWorkInventorySlotsWidget::ConstructUI(FGameplayTag Channel, const FInventoryInitializeMessage& Message)
@@ -135,6 +269,16 @@ void UNoWorkInventorySlotsWidget::OnInventoryEntryChanged(const FIntPoint& InIte
 	const FIntPoint& InventorySlotCount = InventoryManager->GetInventorySlotCount();
 	int32 SlotIndex = InItemSlotPos.Y * InventorySlotCount.X + InItemSlotPos.X;
 
+	if (InItemInstance == nullptr || InItemCount < 1)
+	{
+		if (UNoWorkInventoryEntryWidget* EntryWidget = EntryWidgets[SlotIndex])
+		{
+			CanvasPanel_Entries->RemoveChild(EntryWidget);
+			EntryWidgets[SlotIndex] = nullptr;
+		}
+		return;
+	}
+	
 	// 기존에 위젯이 있으면 동일 인스턴스인지 확인
 	if (UNoWorkInventoryEntryWidget* EntryWidget = EntryWidgets[SlotIndex])
 	{

@@ -12,6 +12,7 @@ class UNoWorkInventoryValidWidget;
 class UNoWorkInventoryEntryWidget;
 class UNoWorkInventorySlotWidget;
 class UNoWorkItemHoverWidget;
+class UNoWorkItemDragWidget;
 
 // 아이템 희귀도별 UI 표시 정보를 정의하는 구조체
 // - 배열(RarityInfoEntries)로 관리되며, 인덱스는 EItemRarity를 그대로 사용
@@ -67,8 +68,9 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UNoWorkItemHoverWidget> ItemHoverWidgetClass;
 	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UNoWorkItemDragWidget> ItemDragWidgetClass;
 
-	
 private:
 
 	UPROPERTY(EditDefaultsOnly, meta=(ArraySizeEnum="EItemRarity"))

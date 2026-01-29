@@ -23,6 +23,13 @@ public:
     // 소유 슬롯 위젯/아이템/수량으로 엔트리 초기화. 크기와 UI를 즉시 갱신한다.
     void Init(UNoWorkInventorySlotsWidget* InSlotsWidget, UNoWorkItemInstance* InItemInstance, int32 InItemCount);
 
+protected:
+    // 좌클릭 드래그 시작 준비, 우클릭 퀵 무브 판정 전 마우스/위젯 좌표를 계산한다.
+    virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+    // 드래그 비주얼/페이로드(UD1ItemDragDrop)를 생성한다.
+    virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
+
+    
 private:
     UPROPERTY()
     // 소유하고 있는 슬롯 컨테이너 위젯(좌표 변환/매니저 접근에 사용)

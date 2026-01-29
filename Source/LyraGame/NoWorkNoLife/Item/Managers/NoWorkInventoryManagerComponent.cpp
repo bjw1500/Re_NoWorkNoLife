@@ -456,6 +456,8 @@ void UNoWorkInventoryManagerComponent::AddItem_Unsafe(const FIntPoint& ItemSlotP
 		MarkSlotChecks(true, ItemSlotPos, ItemTemplate.SlotCount);
 		InventoryList.MarkItemDirty(Entry);
 	}
+
+	OnInventoryEntryChanged.Broadcast(ItemSlotPos, Entry.ItemInstance, Entry.ItemCount);
 }
 
 UNoWorkItemInstance* UNoWorkInventoryManagerComponent::RemoveItem_Unsafe(const FIntPoint& ItemSlotPos, int32 ItemCount)
@@ -484,6 +486,7 @@ UNoWorkItemInstance* UNoWorkInventoryManagerComponent::RemoveItem_Unsafe(const F
 	}
 	
 	InventoryList.MarkItemDirty(Entry);
+	OnInventoryEntryChanged.Broadcast(ItemSlotPos, Entry.ItemInstance, Entry.ItemCount);
 	return ItemInstance;
 }
 

@@ -36,6 +36,17 @@ protected:
 	// 위젯 파괴 직전. 구독 해제 및 리소스 정리.
 	virtual void NativeDestruct() override;
 
+protected:
+
+	// 드래그가 위젯을 지나는 동안. 드롭 후보 좌표 산출 및 유효/무효 하이라이트 갱신.
+	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	// 드래그가 위젯을 벗어났을 때. 하이라이트 초기화.
+	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	// 드롭 시점. 서버 RPC로 아이템 이동/합치기 요청.
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	// 드래그 종료 처리(하이라이트 초기화, 상태 리셋).
+	void FinishDrag();
+	
 public:
 
 	// 메시지 리스너에서 호출되는 UI 구성 진입점.
