@@ -3,6 +3,7 @@
 #include "CommonActivatableWidget.h"
 #include "LyraGameplayTags.h"
 #include "Actions/AsyncAction_PushContentToLayerForPlayer.h"
+#include "Character/LyraCharacter.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "Player/LyraPlayerController.h"
 
@@ -53,6 +54,7 @@ void UNoWorkGameplayAbility_Interact_Chest::ActivateAbility(const FGameplayAbili
 	{
 		UNoWorkItemManagerComponent* MyItemManager = GetLyraPlayerControllerFromActorInfo()->GetComponentByClass<UNoWorkItemManagerComponent>();
 		UNoWorkInventoryManagerComponent* OtherInventoryManager = InteractableActor->GetComponentByClass<UNoWorkInventoryManagerComponent>();
+		
 		MyItemManager->AddAllowedComponent(OtherInventoryManager);
 	}
 
@@ -84,6 +86,12 @@ void UNoWorkGameplayAbility_Interact_Chest::EndAbility(const FGameplayAbilitySpe
 			UNoWorkInventoryManagerComponent* OtherInventoryManager = InteractableActor->GetComponentByClass<UNoWorkInventoryManagerComponent>();
 			MyItemManager->RemoveAllowedComponent(OtherInventoryManager);
 		}
+
+		if (UNoWorkItemManagerComponent* OtherItemManager = InteractableActor->GetComponentByClass<UNoWorkItemManagerComponent>())
+		{
+			UNoWorkInventoryManagerComponent* MyInventoryManager = GetLyraPlayerControllerFromActorInfo()->GetComponentByClass<UNoWorkInventoryManagerComponent>();
+			OtherItemManager->RemoveAllowedComponent(MyInventoryManager);
+		}
 	}
 	
 	if (IsLocallyControlled() && PushedWidget)
@@ -99,10 +107,16 @@ void UNoWorkGameplayAbility_Interact_Chest::OnAfterPushWidget(UCommonActivatable
 	PushedWidget = InPushedWidget;
 	
 	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(this);
-	
+
+	//상자의 인벤토리 정보를 업데이트하게 브로드캐스트
 	FInventoryInitializeMessage OtherInventoryInitMessage;
 	OtherInventoryInitMessage.InventoryManager = InteractableActor->GetComponentByClass<UNoWorkInventoryManagerComponent>();
 	MessageSubsystem.BroadcastMessage(LyraGameplayTags::Message_Initialize_OtherInventory, OtherInventoryInitMessage);
+
+	//플레이어의 인벤토리 정보를 업데이트하게 브로드캐스트
+	FInventoryInitializeMessage MyInventoryInitMessage;
+	MyInventoryInitMessage.InventoryManager = GetLyraCharacterFromActorInfo()->GetComponentByClass<UNoWorkInventoryManagerComponent>();
+	MessageSubsystem.BroadcastMessage(LyraGameplayTags::Message_Initialize_MyInventory, MyInventoryInitMessage);
 	
 	InPushedWidget->OnDeactivated().AddLambda([this]()
 	{	

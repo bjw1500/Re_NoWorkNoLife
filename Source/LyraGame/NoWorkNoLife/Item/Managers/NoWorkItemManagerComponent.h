@@ -10,6 +10,7 @@
 // - 서버 RPC로 인벤토리/장비 간 이동, 퀵 이동, 드롭/줍기 처리
 // - AllowedComponents로 상호작용 허용 대상(다른 인벤토리/장비 UI 등) 제한
 
+class APawn;
 class UNoWorkItemInstance;
 class UNoWorkInventoryManagerComponent;
 
@@ -20,6 +21,10 @@ class LYRAGAME_API UNoWorkItemManagerComponent : public UControllerComponent
 
 public:
 	UNoWorkItemManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 
@@ -63,6 +68,9 @@ protected:
     UNoWorkInventoryManagerComponent* GetMyInventoryManager() const;
 
 private:
+    UFUNCTION()
+    void OnPossessedPawnChanged(APawn* OldPawn, APawn* NewPawn);
+
     // 허용된 컴포넌트 목록(서버 권한에서만 의미 있음)
     UPROPERTY()
     TArray<TWeakObjectPtr<UActorComponent>> AllowedComponents;

@@ -4,6 +4,8 @@
 #include "NoWorkNoLife/Item/Managers/NoWorkItemManagerComponent.h"
 
 #include "NoWorkInventoryManagerComponent.h"
+#include "GameFramework/Controller.h"
+#include "GameFramework/Pawn.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "System/LyraAssetManager.h"
 
@@ -12,6 +14,46 @@ UNoWorkItemManagerComponent::UNoWorkItemManagerComponent(const FObjectInitialize
 {
 	SetIsReplicatedByDefault(true);
 }
+
+void UNoWorkItemManagerComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (HasAuthority() == false)
+		return;
+
+	if (AController* Controller = Cast<AController>(GetOwner()))
+	{
+		Controller->OnPossessedPawnChanged.AddDynamic(this, &ThisClass::OnPossessedPawnChanged);
+
+		if (APawn* ControlledPawn = Controller->GetPawn())
+		{
+			OnPossessedPawnChanged(nullptr, ControlledPawn);
+		}
+	}
+}
+
+void UNoWorkItemManagerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (HasAuthority())
+	{
+		if (AController* Controller = Cast<AController>(GetOwner()))
+		{
+			Controller->OnPossessedPawnChanged.RemoveDynamic(this, &ThisClass::OnPossessedPawnChanged);
+
+			if (APawn* ControlledPawn = Controller->GetPawn())
+			{
+				if (UNoWorkInventoryManagerComponent* Inventory = ControlledPawn->GetComponentByClass<UNoWorkInventoryManagerComponent>())
+				{
+					RemoveAllowedComponent(Inventory);
+				}
+			}
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 
 void UNoWorkItemManagerComponent::Server_InventoryToInventory_Implementation(
 	UNoWorkInventoryManagerComponent* FromInventoryManager, const FIntPoint& FromItemSlotPos,
@@ -158,11 +200,17 @@ void UNoWorkItemManagerComponent::Server_QuickFromInventory_Implementation(
 
 void UNoWorkItemManagerComponent::AddAllowedComponent(UActorComponent* ActorComponent)
 {
-	AllowedComponents.Add(ActorComponent);
+	if (ActorComponent == nullptr)
+		return;
+
+	AllowedComponents.AddUnique(ActorComponent);
 }
 
 void UNoWorkItemManagerComponent::RemoveAllowedComponent(UActorComponent* ActorComponent)
 {
+	if (ActorComponent == nullptr)
+		return;
+
 	AllowedComponents.Remove(ActorComponent);
 }
 
@@ -185,3 +233,26 @@ UNoWorkInventoryManagerComponent* UNoWorkItemManagerComponent::GetMyInventoryMan
 
 	return MyInventoryManager;
 }
+
+void UNoWorkItemManagerComponent::OnPossessedPawnChanged(APawn* OldPawn, APawn* NewPawn)
+{
+	if (HasAuthority() == false)
+		return;
+
+	if (OldPawn)
+	{
+		if (UNoWorkInventoryManagerComponent* OldInventory = OldPawn->GetComponentByClass<UNoWorkInventoryManagerComponent>())
+		{
+			RemoveAllowedComponent(OldInventory);
+		}
+	}
+
+	if (NewPawn)
+	{
+		if (UNoWorkInventoryManagerComponent* NewInventory = NewPawn->GetComponentByClass<UNoWorkInventoryManagerComponent>())
+		{
+			AddAllowedComponent(NewInventory);
+		}
+	}
+}
+
