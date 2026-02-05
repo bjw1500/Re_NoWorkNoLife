@@ -49,6 +49,11 @@ void UNoWorkGameplayAbility_Interact_Chest::ActivateAbility(const FGameplayAbili
 	{
 		ChestActor->SetChestState(EChestState::Open);
 	}
+
+	//TODO
+	//열린 상자를 닫을 때 인벤토리 UI 열리는 걸 어떻게 해보자.
+	//상자가 열린 상태에서 짧게 누르면 내용물을 확인 할 수 있고, 길게 누르면 인벤토리 열리지 않고 닫히게 해보자..
+
 	
 	if (HasAuthority(&CurrentActivationInfo))
 	{
