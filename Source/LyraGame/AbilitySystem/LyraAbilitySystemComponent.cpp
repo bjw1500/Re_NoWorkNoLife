@@ -203,6 +203,15 @@ void ULyraAbilitySystemComponent::AbilityInputTagStarted(const FGameplayTag& Inp
 {
 	if (InputTag.IsValid())
 	{
+		// Enhanced Input can emit Started repeatedly while a key is held (e.g., pulse triggers
+		// or mapping changes). Gate by input tag so ability swapping doesn't re-fire Started.
+		if (InputHeldTags.Contains(InputTag))
+		{
+			return;
+		}
+
+		InputHeldTags.Add(InputTag);
+
 		for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
 		{
 			if (AbilitySpec.Ability && (AbilitySpec.DynamicAbilityTags.HasTagExact(InputTag)))
@@ -232,6 +241,8 @@ void ULyraAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& In
 {
 	if (InputTag.IsValid())
 	{
+		InputHeldTags.Remove(InputTag);
+
 		for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
 		{
 			if (AbilitySpec.Ability && (AbilitySpec.DynamicAbilityTags.HasTagExact(InputTag)))
@@ -364,6 +375,7 @@ void ULyraAbilitySystemComponent::ClearAbilityInput()
 	InputPressedSpecHandles.Reset();
 	InputReleasedSpecHandles.Reset();
 	InputHeldSpecHandles.Reset();
+	InputHeldTags.Reset();
 }
 
 void ULyraAbilitySystemComponent::NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability)

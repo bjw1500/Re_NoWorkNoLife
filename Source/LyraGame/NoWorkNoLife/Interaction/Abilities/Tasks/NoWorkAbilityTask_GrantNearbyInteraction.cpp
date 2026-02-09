@@ -85,23 +85,28 @@ void UNoWorkAbilityTask_GrantNearbyInteraction::QueryInteractables()
 				Interactable->GatherPostInteractionInfos(InteractionQuery, InteractionInfoBuilder);
 			}
 		
+			auto GrantAbilityIfNeeded = [&](TSubclassOf<UGameplayAbility> AbilityClass)
+			{
+				if (!AbilityClass) return;
+
+				FObjectKey ObjectKey(AbilityClass);
+				if (GrantedInteractionAbilities.Find(ObjectKey))
+				{
+					RemoveKeys.Remove(ObjectKey);
+					return;
+				}
+
+				FGameplayAbilitySpec Spec(AbilityClass, 1, INDEX_NONE, this);
+				FGameplayAbilitySpecHandle SpecHandle = AbilitySystemComponent->GiveAbility(Spec);
+				GrantedInteractionAbilities.Add(ObjectKey, SpecHandle);
+			};
+
 			for (FNoWorkInteractionInfo& InteractionInfo : InteractionInfos)
 			{
-				if (InteractionInfo.AbilityToGrant)
-				{
-					FObjectKey ObjectKey(InteractionInfo.AbilityToGrant);
-					if (GrantedInteractionAbilities.Find(ObjectKey))
-					{
-						RemoveKeys.Remove(ObjectKey);
-					}
-					else
-					{
-						FGameplayAbilitySpec Spec(InteractionInfo.AbilityToGrant, 1, INDEX_NONE, this);
-						FGameplayAbilitySpecHandle SpecHandle = AbilitySystemComponent->GiveAbility(Spec);
-						GrantedInteractionAbilities.Add(ObjectKey, SpecHandle);
-					}
-				}
+				GrantAbilityIfNeeded(InteractionInfo.AbilityToGrant);
+				GrantAbilityIfNeeded(InteractionInfo.TapAbilityToGrant);
 			}
+
 		}
 		
 		for (const FObjectKey& RemoveKey : RemoveKeys)

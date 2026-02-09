@@ -12,6 +12,7 @@
 #include "NoWorkNoLife/Abilities/Tasks/NoWorkAbilityTask_WaitInputStart.h"
 #include "Tasks/NoWorkAbilityTask_GrantNearbyInteraction.h"
 #include "Tasks/NoWorkAbilityTask_WaitForInteractableTraceHit.h"
+#include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(NoWorkGameplayAbility_Interact)
@@ -116,6 +117,27 @@ void UNoWorkGameplayAbility_Interact::WaitInputStart()
 
 void UNoWorkGameplayAbility_Interact::OnInputStart()
 {
+	if (bInteractionInputHeld)
+	{
+		return;
+	}
+
+	bInteractionInputHeld = true;
 	TriggerInteraction();
+	WaitInputRelease();
+}
+
+void UNoWorkGameplayAbility_Interact::WaitInputRelease()
+{
+	if (UAbilityTask_WaitInputRelease* InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(this, false))
+	{
+		InputReleaseTask->OnRelease.AddDynamic(this, &ThisClass::OnInputReleased);
+		InputReleaseTask->ReadyForActivation();
+	}
+}
+
+void UNoWorkGameplayAbility_Interact::OnInputReleased(float TimeHeld)
+{
+	bInteractionInputHeld = false;
 	WaitInputStart();
 }

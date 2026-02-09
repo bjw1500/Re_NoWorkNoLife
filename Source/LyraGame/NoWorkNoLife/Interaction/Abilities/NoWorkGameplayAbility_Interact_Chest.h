@@ -5,6 +5,14 @@
 
 class UCommonActivatableWidget;
 
+UENUM(BlueprintType)
+enum class EChestInteractAction : uint8
+{
+	None,
+	Toggle,
+	OpenOrInspect,
+};
+
 UCLASS()
 class UNoWorkGameplayAbility_Interact_Chest : public UNoWorkGameplayAbility_Interact_Object
 {
@@ -25,6 +33,12 @@ private:
 	
 protected:
 
+	UPROPERTY(EditDefaultsOnly, Category="NoWork | Interaction")
+	EChestInteractAction ChestAction = EChestInteractAction::Toggle;
+
+	UPROPERTY(EditDefaultsOnly, Category="NoWork | Interaction")
+	bool bOpenInventoryUI = true;
+	
 	UPROPERTY(EditDefaultsOnly, Category="NoWork | Interaction")
 	TSoftClassPtr<UCommonActivatableWidget> WidgetClass;
 

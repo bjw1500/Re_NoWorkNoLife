@@ -48,3 +48,28 @@ void UNoWorkEnhancedPlayerInput::FlushPressedInput(UInputAction* InputAction)
 		}
 	}
 }
+
+bool UNoWorkEnhancedPlayerInput::IsActionKeyDown(const UInputAction* InputAction)
+{
+	if (!InputAction)
+	{
+		return false;
+	}
+
+	const TArray<FEnhancedActionKeyMapping>& KeyMappings = GetEnhancedActionMappings();
+	for (const FEnhancedActionKeyMapping& KeyMapping : KeyMappings)
+	{
+		if (KeyMapping.Action == InputAction)
+		{
+			if (const FKeyState* KeyState = GetKeyStateMap().Find(KeyMapping.Key))
+			{
+				if (KeyState->bDown)
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}

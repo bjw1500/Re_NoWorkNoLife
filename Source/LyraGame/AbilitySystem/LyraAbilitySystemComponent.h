@@ -105,6 +105,9 @@ protected:
 	// Handles to abilities that have their input held.
 	TArray<FGameplayAbilitySpecHandle> InputHeldSpecHandles;
 
+	// Tracks which input tags are currently held to avoid repeated "Started" spam.
+	TSet<FGameplayTag> InputHeldTags;
+
 	// Number of abilities running in each activation group.
 	int32 ActivationGroupCounts[(uint8)ELyraAbilityActivationGroup::MAX];
 };

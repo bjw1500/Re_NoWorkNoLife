@@ -40,22 +40,26 @@ void UNoWorkGameplayAbility_Interact_Chest::ActivateAbility(const FGameplayAbili
 		CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
 		return;
 	}
-
-	if (ChestActor->GetChestState() == EChestState::Open)
-	{
-		ChestActor->SetChestState(EChestState::Close);
-	}
-	else
-	{
-		ChestActor->SetChestState(EChestState::Open);
-	}
-
-	//TODO
-	//열린 상자를 닫을 때 인벤토리 UI 열리는 걸 어떻게 해보자.
-	//상자가 열린 상태에서 짧게 누르면 내용물을 확인 할 수 있고, 길게 누르면 인벤토리 열리지 않고 닫히게 해보자..
-
 	
-	if (HasAuthority(&CurrentActivationInfo))
+	if (ChestAction != EChestInteractAction::None)
+	{
+		switch (ChestAction)
+		{
+		case EChestInteractAction::Toggle:
+			//짧게 눌러줄 때는 인벤토리 UI를 열지 않는다.
+			ChestActor->SetChestState(EChestState::Close);
+			bOpenInventoryUI = false;
+			break;
+		case EChestInteractAction::OpenOrInspect:
+			ChestActor->SetChestState(EChestState::Open);
+			bOpenInventoryUI = true;
+			break;
+		default:
+			break;
+		}
+	}
+	
+	if (HasAuthority(&CurrentActivationInfo) && bOpenInventoryUI)
 	{
 		UNoWorkItemManagerComponent* MyItemManager = GetLyraPlayerControllerFromActorInfo()->GetComponentByClass<UNoWorkItemManagerComponent>();
 		UNoWorkInventoryManagerComponent* OtherInventoryManager = InteractableActor->GetComponentByClass<UNoWorkInventoryManagerComponent>();
@@ -64,7 +68,7 @@ void UNoWorkGameplayAbility_Interact_Chest::ActivateAbility(const FGameplayAbili
 	}
 
 	//상자와 상호작용시 해당 플레이어에게 상자의 Inventory를 볼 수 있는 UI를 열어준다.
-	if (IsLocallyControlled())
+	if (IsLocallyControlled() && bOpenInventoryUI)
 	{
 		if (UAsyncAction_PushContentToLayerForPlayer* PushWidgetAction =
 			UAsyncAction_PushContentToLayerForPlayer::PushContentToLayerForPlayer(

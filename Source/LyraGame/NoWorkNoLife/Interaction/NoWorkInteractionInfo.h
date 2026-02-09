@@ -31,6 +31,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TSubclassOf<UGameplayAbility> AbilityToGrant;
 
+	// 짧게 눌렀을 때 트리거할 능력(옵션)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<UGameplayAbility> TapAbilityToGrant;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UAnimMontage> ActiveStartMontage;
 	
@@ -51,6 +55,7 @@ public:
 			Content.IdenticalTo(Other.Content) &&
 			Duration == Other.Duration &&
 			AbilityToGrant == Other.AbilityToGrant &&
+			TapAbilityToGrant == Other.TapAbilityToGrant &&
 			ActiveStartMontage == Other.ActiveStartMontage &&
 			ActiveEndMontage == Other.ActiveEndMontage &&
 			ActiveLoopGameplayCueTag == Other.ActiveLoopGameplayCueTag &&

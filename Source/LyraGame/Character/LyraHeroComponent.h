@@ -79,6 +79,7 @@ protected:
 	void Input_AbilityInputTagStarted(FGameplayTag InputTag);
 	void Input_AbilityInputTagPressed(FGameplayTag InputTag);
 	void Input_AbilityInputTagReleased(FGameplayTag InputTag);
+	bool IsAbilityInputTagPhysicallyHeld(const FGameplayTag& InputTag);
 
 	void Input_Move(const FInputActionValue& InputActionValue);
 	void Input_LookMouse(const FInputActionValue& InputActionValue);
@@ -118,4 +119,7 @@ protected:
 
 	/** True when player input bindings have been applied, will never be true for non - players */
 	bool bReadyToBindInputs;
+
+	// Ability input configs currently bound for this pawn (used to resolve input tags to actions).
+	TArray<TWeakObjectPtr<const ULyraInputConfig>> ActiveAbilityInputConfigs;
 };

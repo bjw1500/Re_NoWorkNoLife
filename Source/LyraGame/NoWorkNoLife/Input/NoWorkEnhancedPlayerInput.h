@@ -13,4 +13,5 @@ public:
 
 public:
 	void FlushPressedInput(UInputAction* InputAction);
+	bool IsActionKeyDown(const UInputAction* InputAction);
 };

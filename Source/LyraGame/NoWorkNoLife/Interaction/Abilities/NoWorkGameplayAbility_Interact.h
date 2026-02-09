@@ -48,13 +48,20 @@ protected:
 
 private:
 	void WaitInputStart();
+	void WaitInputRelease();
 	
 	UFUNCTION()
 	void OnInputStart();
 
+	UFUNCTION()
+	void OnInputReleased(float TimeHeld);
+
 protected:
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FNoWorkInteractionInfo> CurrentInteractionInfos;
+
+private:
+	bool bInteractionInputHeld = false;
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="NoWork|Interaction")

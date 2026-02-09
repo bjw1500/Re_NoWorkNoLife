@@ -130,8 +130,8 @@ void UNoWorkGameplayAbility_Interact_Active::ActivateAbility(const FGameplayAbil
 		InputReleaseTask->ReadyForActivation();
 	}
 
-	FTimerHandle TimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ThisClass::OnDurationEnded, InteractionInfo.Duration, false);
+	bInteractionTriggered = false;
+	GetWorld()->GetTimerManager().SetTimer(DurationTimerHandle, this, &ThisClass::OnDurationEnded, InteractionInfo.Duration, false);
 }
 
 // 연출 복구 및 UI 알림(Notice) 송신
@@ -171,7 +171,12 @@ void UNoWorkGameplayAbility_Interact_Active::EndAbility(const FGameplayAbilitySp
 		UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(this);
 		MessageSubsystem.BroadcastMessage(LyraGameplayTags::Message_Interaction_Notice, Message);
 	}
-	
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DurationTimerHandle);
+	}
+
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
@@ -182,11 +187,23 @@ void UNoWorkGameplayAbility_Interact_Active::OnInvalidInteraction()
 
 void UNoWorkGameplayAbility_Interact_Active::OnInputReleased(float TimeHeld)
 {
+	if (InteractionInfo.Duration > 0.f && TimeHeld < InteractionInfo.Duration && InteractionInfo.TapAbilityToGrant)
+	{
+		bInteractionTriggered = TriggerInteractionWithAbility(InteractionInfo.TapAbilityToGrant);
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+		return;
+	}
+
 	CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
 }
 
 void UNoWorkGameplayAbility_Interact_Active::OnDurationEnded()
 {
+	if (bInteractionTriggered)
+	{
+		return;
+	}
+	
 	if (UAbilityTask_NetworkSyncPoint* NetSyncTask = UAbilityTask_NetworkSyncPoint::WaitNetSync(this, EAbilityTaskNetSyncType::OnlyServerWait))
 	{
 		NetSyncTask->OnSync.AddDynamic(this, &ThisClass::OnNetSync);
@@ -196,8 +213,9 @@ void UNoWorkGameplayAbility_Interact_Active::OnDurationEnded()
 
 void UNoWorkGameplayAbility_Interact_Active::OnNetSync()
 {
-	if (TriggerInteraction())
+	if (TriggerInteractionWithAbility(InteractionInfo.AbilityToGrant))
 	{
+		bInteractionTriggered = true;
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 	}
 	else
@@ -209,19 +227,29 @@ void UNoWorkGameplayAbility_Interact_Active::OnNetSync()
 // 실제 상호작용 능력(InteractionInfo.AbilityToGrant)을 Ability.Interact 이벤트로 트리거
 bool UNoWorkGameplayAbility_Interact_Active::TriggerInteraction()
 {
+	return TriggerInteractionWithAbility(InteractionInfo.AbilityToGrant);
+}
+
+bool UNoWorkGameplayAbility_Interact_Active::TriggerInteractionWithAbility(TSubclassOf<UGameplayAbility> AbilityClass)
+{
+	if (!AbilityClass)
+	{
+		return false;
+	}
+
 	bool bTriggerSuccessful = false;
 	bool bCanActivate = false;
-	
+
 	FGameplayEventData Payload;
 	Payload.EventTag = LyraGameplayTags::Ability_Interact;
 	Payload.Instigator = GetAvatarActorFromActorInfo();
 	Payload.Target = InteractableActor;
-	
+
 	Interactable->CustomizeInteractionEventData(LyraGameplayTags::Ability_Interact, Payload);
-	
+
 	if (UAbilitySystemComponent* AbilitySystem = GetAbilitySystemComponentFromActorInfo())
 	{
-		if (FGameplayAbilitySpec* AbilitySpec = AbilitySystem->FindAbilitySpecFromClass(InteractionInfo.AbilityToGrant))
+		if (FGameplayAbilitySpec* AbilitySpec = AbilitySystem->FindAbilitySpecFromClass(AbilityClass))
 		{
 			bCanActivate = AbilitySpec->Ability->CanActivateAbility(AbilitySpec->Handle, AbilitySystem->AbilityActorInfo.Get());
 			bTriggerSuccessful = AbilitySystem->TriggerAbilityFromGameplayEvent(
@@ -235,4 +263,5 @@ bool UNoWorkGameplayAbility_Interact_Active::TriggerInteraction()
 	}
 
 	return bCanActivate || bTriggerSuccessful;
+
 }

@@ -15,6 +15,7 @@
 #include "AbilitySystem/LyraAbilitySystemComponent.h"
 #include "Input/LyraInputConfig.h"
 #include "Input/LyraInputComponent.h"
+#include "NoWorkNoLife/Input/NoWorkEnhancedPlayerInput.h"
 #include "Camera/LyraCameraComponent.h"
 #include "LyraGameplayTags.h"
 #include "Components/GameFrameworkComponentManager.h"
@@ -250,6 +251,9 @@ void ULyraHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompo
 		{
 			if (const ULyraInputConfig* InputConfig = PawnData->InputConfig)
 			{
+				ActiveAbilityInputConfigs.Reset();
+				ActiveAbilityInputConfigs.AddUnique(InputConfig);
+
 				for (const FInputMappingContextAndPriority& Mapping : DefaultInputMappings)
 				{
 					if (UInputMappingContext* IMC = Mapping.InputMapping.Get())
@@ -326,6 +330,7 @@ void ULyraHeroComponent::AddAdditionalInputConfig(const ULyraInputConfig* InputC
 		ULyraInputComponent* LyraIC = Pawn->FindComponentByClass<ULyraInputComponent>();
 		if (ensureMsgf(LyraIC, TEXT("Unexpected Input Component class! The Gameplay Abilities will not be bound to their inputs. Change the input component to ULyraInputComponent or a subclass of it.")))
 		{
+			ActiveAbilityInputConfigs.AddUnique(InputConfig);
 			LyraIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagStarted, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, /*out*/ BindHandles);
 		}
 	}
@@ -333,7 +338,7 @@ void ULyraHeroComponent::AddAdditionalInputConfig(const ULyraInputConfig* InputC
 
 void ULyraHeroComponent::RemoveAdditionalInputConfig(const ULyraInputConfig* InputConfig)
 {
-	//@TODO: Implement me!
+	ActiveAbilityInputConfigs.Remove(InputConfig);
 }
 
 bool ULyraHeroComponent::IsReadyToBindInputs() const
@@ -378,6 +383,11 @@ void ULyraHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTag)
 		return;
 	}
 
+	if (IsAbilityInputTagPhysicallyHeld(InputTag))
+	{
+		return;
+	}
+
 	if (const ULyraPawnExtensionComponent* PawnExtComp = ULyraPawnExtensionComponent::FindPawnExtensionComponent(Pawn))
 	{
 		if (ULyraAbilitySystemComponent* LyraASC = PawnExtComp->GetLyraAbilitySystemComponent())
@@ -385,6 +395,43 @@ void ULyraHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTag)
 			LyraASC->AbilityInputTagReleased(InputTag);
 		}
 	}
+}
+
+bool ULyraHeroComponent::IsAbilityInputTagPhysicallyHeld(const FGameplayTag& InputTag)
+{
+	if (!InputTag.IsValid())
+	{
+		return false;
+	}
+
+	APlayerController* PC = GetController<APlayerController>();
+	if (!PC)
+	{
+		return false;
+	}
+
+	UNoWorkEnhancedPlayerInput* PlayerInput = Cast<UNoWorkEnhancedPlayerInput>(PC->PlayerInput);
+	if (!PlayerInput)
+	{
+		return false;
+	}
+
+	for (const TWeakObjectPtr<const ULyraInputConfig>& InputConfigPtr : ActiveAbilityInputConfigs)
+	{
+		const ULyraInputConfig* InputConfig = InputConfigPtr.Get();
+		if (!InputConfig)
+		{
+			continue;
+		}
+
+		const UInputAction* InputAction = InputConfig->FindAbilityInputActionForTag(InputTag, /*bLogNotFound=*/ false);
+		if (InputAction && PlayerInput->IsActionKeyDown(InputAction))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void ULyraHeroComponent::Input_Move(const FInputActionValue& InputActionValue)

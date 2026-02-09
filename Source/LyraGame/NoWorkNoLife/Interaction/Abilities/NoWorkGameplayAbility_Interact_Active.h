@@ -41,6 +41,15 @@ private:
 	bool TriggerInteraction();
 
 protected:
+	
+	bool TriggerInteractionWithAbility(TSubclassOf<UGameplayAbility> AbilityClass);
+	
+	FTimerHandle DurationTimerHandle;
+	
+	bool bInteractionTriggered = false;
+
+protected:
+	
 	UPROPERTY(EditDefaultsOnly, Category="NoWork|Interaction")
 	TObjectPtr<UInputAction> MoveInputAction;
 	
